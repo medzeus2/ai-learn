@@ -22,11 +22,12 @@ public class PersonController {
     }
 
     @GetMapping
-    public String list(Model model) {
+    public String list(@RequestParam(value = "keyword", required = false) String keyword, Model model) {
         if (!model.containsAttribute("person")) {
             model.addAttribute("person", new Person());
         }
-        model.addAttribute("persons", personService.findAll());
+        model.addAttribute("keyword", keyword == null ? "" : keyword);
+        model.addAttribute("persons", personService.searchByNameKeyword(keyword));
         model.addAttribute("genders", Gender.values());
         model.addAttribute("statuses", PersonStatus.values());
         model.addAttribute("editing", false);
@@ -36,10 +37,12 @@ public class PersonController {
     @PostMapping
     public String create(@Valid @ModelAttribute("person") Person person,
                          BindingResult bindingResult,
+                         @RequestParam(value = "keyword", required = false) String keyword,
                          Model model,
                          RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("persons", personService.findAll());
+            model.addAttribute("keyword", keyword == null ? "" : keyword);
+            model.addAttribute("persons", personService.searchByNameKeyword(keyword));
             model.addAttribute("genders", Gender.values());
             model.addAttribute("statuses", PersonStatus.values());
             model.addAttribute("editing", false);
@@ -51,9 +54,12 @@ public class PersonController {
     }
 
     @GetMapping("/{id}/edit")
-    public String edit(@PathVariable Long id, Model model) {
+    public String edit(@PathVariable Long id,
+                       @RequestParam(value = "keyword", required = false) String keyword,
+                       Model model) {
         model.addAttribute("person", personService.findById(id));
-        model.addAttribute("persons", personService.findAll());
+        model.addAttribute("keyword", keyword == null ? "" : keyword);
+        model.addAttribute("persons", personService.searchByNameKeyword(keyword));
         model.addAttribute("genders", Gender.values());
         model.addAttribute("statuses", PersonStatus.values());
         model.addAttribute("editing", true);
@@ -64,10 +70,12 @@ public class PersonController {
     public String update(@PathVariable Long id,
                          @Valid @ModelAttribute("person") Person person,
                          BindingResult bindingResult,
+                         @RequestParam(value = "keyword", required = false) String keyword,
                          Model model,
                          RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("persons", personService.findAll());
+            model.addAttribute("keyword", keyword == null ? "" : keyword);
+            model.addAttribute("persons", personService.searchByNameKeyword(keyword));
             model.addAttribute("genders", Gender.values());
             model.addAttribute("statuses", PersonStatus.values());
             model.addAttribute("editing", true);
