@@ -15,7 +15,7 @@
     <div class="card mb-4">
         <div class="card-header" th:text="${editing} ? '编辑人员' : '新增人员'"></div>
         <div class="card-body">
-            <form th:action="${editing} ? @{/persons/{id}(id=${person.id})} : @{/persons}" th:object="${person}" method="post"
+            <form th:action="${editing} ? @{/persons/{id}(id=${person.id}, keyword=${keyword})} : @{/persons(keyword=${keyword})}" th:object="${person}" method="post"
                   class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">姓名</label>
@@ -50,7 +50,7 @@
                 </div>
                 <div class="col-12">
                     <button class="btn btn-primary" type="submit" th:text="${editing} ? '保存修改' : '新增'"></button>
-                    <a class="btn btn-secondary" th:if="${editing}" th:href="@{/persons}">取消</a>
+                    <a class="btn btn-secondary" th:if="${editing}" th:href="@{/persons(keyword=${keyword})}">取消</a>
                 </div>
             </form>
         </div>
@@ -59,6 +59,17 @@
     <div class="card">
         <div class="card-header">人员列表</div>
         <div class="card-body table-responsive">
+            <form class="row g-2 mb-3" method="get" th:action="@{/persons}">
+                <div class="col-md-6">
+                    <input type="text" name="keyword" class="form-control"
+                           placeholder="请输入姓名/拼音/拼音首字母，例如：张三、zhangsan、zs"
+                           th:value="${keyword}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary">检索</button>
+                    <a th:href="@{/persons}" class="btn btn-outline-secondary">重置</a>
+                </div>
+            </form>
             <table class="table table-bordered table-striped align-middle">
                 <thead>
                 <tr>
@@ -86,7 +97,7 @@
                               th:text="${item.status.label}"></span>
                     </td>
                     <td>
-                        <a class="btn btn-sm btn-warning" th:href="@{/persons/{id}/edit(id=${item.id})}">编辑</a>
+                        <a class="btn btn-sm btn-warning" th:href="@{/persons/{id}/edit(id=${item.id}, keyword=${keyword})}">编辑</a>
                         <form th:action="@{/persons/{id}/delete(id=${item.id})}" method="post" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('确认删除?')">删除</button>
                         </form>

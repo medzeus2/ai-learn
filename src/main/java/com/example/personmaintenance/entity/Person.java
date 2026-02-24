@@ -16,6 +16,12 @@ public class Person {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Column(name = "name_pinyin", nullable = false, length = 120)
+    private String namePinyin;
+
+    @Column(name = "name_initials", nullable = false, length = 50)
+    private String nameInitials;
+
     @NotNull(message = "性别不能为空")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -51,6 +57,22 @@ public class Person {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getNamePinyin() {
+        return namePinyin;
+    }
+
+    public void setNamePinyin(String namePinyin) {
+        this.namePinyin = namePinyin;
+    }
+
+    public String getNameInitials() {
+        return nameInitials;
+    }
+
+    public void setNameInitials(String nameInitials) {
+        this.nameInitials = nameInitials;
     }
 
     public Gender getGender() {
