@@ -5,14 +5,19 @@ import com.example.personmaintenance.entity.Person;
 import com.example.personmaintenance.entity.PersonStatus;
 import com.example.personmaintenance.service.PersonService;
 import jakarta.validation.Valid;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@Controller
-@RequestMapping("/persons")
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/persons")
 public class PersonController {
 
     private final PersonService personService;
@@ -22,80 +27,84 @@ public class PersonController {
     }
 
     @GetMapping
-    public String list(@RequestParam(value = "keyword", required = false) String keyword, Model model) {
-        if (!model.containsAttribute("person")) {
-            model.addAttribute("person", new Person());
-        }
-        model.addAttribute("keyword", keyword == null ? "" : keyword);
-        model.addAttribute("persons", personService.searchByNameKeyword(keyword));
-        model.addAttribute("genders", Gender.values());
-        model.addAttribute("statuses", PersonStatus.values());
-        model.addAttribute("editing", false);
-        return "persons";
+    public List<Person> list(@RequestParam(value = "keyword", required = false) String keyword) {
+        return personService.searchByNameKeyword(keyword);
+    }
+
+    @GetMapping("/{id}")
+    public Person get(@PathVariable Long id) {
+        return personService.findById(id);
     }
 
     @PostMapping
-    public String create(@Valid @ModelAttribute("person") Person person,
-                         BindingResult bindingResult,
-                         @RequestParam(value = "keyword", required = false) String keyword,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
+    public ResponseEntity<?> create(@Valid @RequestBody Person person, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("keyword", keyword == null ? "" : keyword);
-            model.addAttribute("persons", personService.searchByNameKeyword(keyword));
-            model.addAttribute("genders", Gender.values());
-            model.addAttribute("statuses", PersonStatus.values());
-            model.addAttribute("editing", false);
-            return "persons";
+            return ResponseEntity.badRequest().body(validationErrors(bindingResult));
         }
-        personService.save(person);
-        redirectAttributes.addFlashAttribute("success", "新增成功");
-        return "redirect:/persons";
+        try {
+            return ResponseEntity.ok(personService.save(person));
+        } catch (DataIntegrityViolationException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", "身份证号已存在"));
+        }
     }
 
-    @GetMapping("/{id}/edit")
-    public String edit(@PathVariable Long id,
-                       @RequestParam(value = "keyword", required = false) String keyword,
-                       Model model) {
-        model.addAttribute("person", personService.findById(id));
-        model.addAttribute("keyword", keyword == null ? "" : keyword);
-        model.addAttribute("persons", personService.searchByNameKeyword(keyword));
-        model.addAttribute("genders", Gender.values());
-        model.addAttribute("statuses", PersonStatus.values());
-        model.addAttribute("editing", true);
-        return "persons";
-    }
-
-    @PostMapping("/{id}")
-    public String update(@PathVariable Long id,
-                         @Valid @ModelAttribute("person") Person person,
-                         BindingResult bindingResult,
-                         @RequestParam(value = "keyword", required = false) String keyword,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id,
+                                    @Valid @RequestBody Person person,
+                                    BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("keyword", keyword == null ? "" : keyword);
-            model.addAttribute("persons", personService.searchByNameKeyword(keyword));
-            model.addAttribute("genders", Gender.values());
-            model.addAttribute("statuses", PersonStatus.values());
-            model.addAttribute("editing", true);
-            return "persons";
+            return ResponseEntity.badRequest().body(validationErrors(bindingResult));
         }
         person.setId(id);
-        personService.save(person);
-        redirectAttributes.addFlashAttribute("success", "修改成功");
-        return "redirect:/persons";
+        try {
+            return ResponseEntity.ok(personService.save(person));
+        } catch (DataIntegrityViolationException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", "身份证号已存在"));
+        }
     }
 
-    @PostMapping("/{id}/delete")
-    public String delete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
         personService.deleteById(id);
-        redirectAttributes.addFlashAttribute("success", "删除成功");
-        return "redirect:/persons";
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/")
-    public String redirectRoot() {
-        return "redirect:/persons";
+    @GetMapping("/meta")
+    public Map<String, Object> meta() {
+        return Map.of(
+                "genders", enumMeta(Gender.values()),
+                "statuses", enumMeta(PersonStatus.values())
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleNotFound(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+    }
+
+    private Map<String, String> validationErrors(BindingResult bindingResult) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        for (FieldError error : bindingResult.getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+        return errors;
+    }
+
+    private Map<String, String>[] enumMeta(Enum<?>[] values) {
+        @SuppressWarnings("unchecked")
+        Map<String, String>[] result = new Map[values.length];
+        for (int i = 0; i < values.length; i++) {
+            Enum<?> v = values[i];
+            String label;
+            if (v instanceof Gender g) {
+                label = g.getLabel();
+            } else if (v instanceof PersonStatus s) {
+                label = s.getLabel();
+            } else {
+                label = v.name();
+            }
+            result[i] = Map.of("value", v.name(), "label", label);
+        }
+        return result;
     }
 }
