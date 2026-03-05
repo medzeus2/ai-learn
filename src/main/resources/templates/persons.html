@@ -105,7 +105,7 @@
     </style>
 </head>
 <body>
-<div id="app-root" style="display: none;">
+<div id="app-root">
     <div class="page-wrapper">
         <div th:if="${success}" class="x-success" th:text="${success}"></div>
 
@@ -198,9 +198,10 @@
 <script src="https://cdn.jsdelivr.net/gh/tvheadend/extjs@2.3.1/adapter/ext/ext-base.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/tvheadend/extjs@2.3.1/ext-all.js"></script>
 <script>
-    Ext.onReady(function () {
-        Ext.QuickTips.init();
-        new Ext.Viewport({
+    if (window.Ext && Ext.onReady) {
+        Ext.onReady(function () {
+            Ext.QuickTips.init();
+            new Ext.Viewport({
             layout: 'border',
             items: [{
                 region: 'north',
@@ -225,8 +226,12 @@
             }]
         });
 
-        Ext.get('app-root').setStyle('display', 'block');
-    });
+            // Ext 加载成功时启用 viewport 布局
+        });
+    } else {
+        // Ext 资源加载失败时保留静态页面，避免白屏
+        console.warn('Ext2 resources failed to load, fallback to static layout.');
+    }
 </script>
 </body>
 </html>
